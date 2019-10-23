@@ -4,9 +4,11 @@ import grpc
 import time
 
 # Utils
-client = MongoClient("mongodb://team:123ert@ds018839.mlab.com:18839/new_hackaton")
+client = MongoClient("mongodb://team:123ert@ds018839.mlab.com:18839/new_hackaton", retryWrites= False)
 db = client.new_hackaton
 reviews = db.reviews
+# https://github.com/dialogs/chatbot-hackathon - basic things
+# https://hackathon.transmit.im/web/#/im/u2108492517 - bot
 
 def on_msg(msg, *params):
     #print("on msg", params)
@@ -20,16 +22,12 @@ def add_user_to_admins(id):
 
 
 def is_first_message(id):
-    if(reviews.find_one({"id":id}) is None):
-        return True
-    else:
-        return False
+    return True if reviews.find_one({"id":id}) is None else False
+
 
 def is_admin(id):
-    if (reviews.find_one({"id":id})['name'] != "Office-manager"):
-        return False
-    else:
-        return True
+    return False if reviews.find_one({"id":id})['name'] != "Office-manager" else True
+
 
 # Main fun
 def main(*params):
