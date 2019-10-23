@@ -4,33 +4,48 @@ import grpc
 import time
 
 # Utils
-client = MongoClient(port=27017)
-db = client.onboarding
-is_first_message = False
-
+client = MongoClient("mongodb://team:123ert@ds018839.mlab.com:18839/new_hackaton")
+db = client.new_hackaton
+reviews = db.reviews
 
 def on_msg(msg, *params):
-    print("on msg", params)
+    #print("on msg", params)
+    #print("\n--------------------------------------------")
     bot.messaging.send_message(params[0].peer, msg)
 
 
 # Add data to db
 def add_user_to_admins(id):
-    db.reviews.insert_one({"name": "Office-manager", "id": id})
+    reviews.insert_one({"name": "Office-manager", "id": id})
 
+
+def is_first_message(id):
+    if(reviews.find_one({"id":id}) is None):
+        return True
+    else:
+        return False
+
+def is_admin(id):
+    if (reviews.find_one({"id":id})['name'] != "Office-manager"):
+        return False
+    else:
+        return True
 
 # Main fun
 def main(*params):
-    global is_first_message
-    on_msg("Hello user", *params)
+    id = params[0].peer.id
+    user = bot.users.get_user_by_id(id)
+    on_msg("Hello user "+user.data.name, *params)
 
-    if is_first_message == False:
-        add_user_to_admins(params[0].peer.id)
+    if (is_first_message(id) == True):
+        add_user_to_admins(id)
         bot.messaging.send_message(params[0].peer, "You became a office manager!")
-        is_first_message = True
-        return is_first_message
+        return
 
-    time.sleep(2)  # to better usage
+    if (is_admin(id) == True):
+        bot.messaging.send_message(params[0].peer, "You are a office manager!")
+        return
+    #time.sleep(2)  # to better usage
     on_msg("It is not first message!", *params)
 
 
