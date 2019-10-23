@@ -1,4 +1,5 @@
 from dialog_bot_sdk.bot import DialogBot
+from dialog_bot_sdk import interactive_media
 from pymongo import MongoClient
 import grpc
 import time
@@ -21,6 +22,21 @@ def is_manager(id):
 def send_manager_buttons(id, peer):
     bot.messaging.send_message(peer, 'Sending manager buttons')
 
+    buttons = [interactive_media.InteractiveMediaGroup(
+            [
+                interactive_media.InteractiveMedia(
+                    1,
+                    interactive_media.InteractiveMediaButton('Add', "button_one"),
+                ),
+                interactive_media.InteractiveMedia(
+                    150,
+                    interactive_media.InteractiveMediaButton("Delete", "button_two")
+                ),
+            ]
+        )]
+
+    bot.messaging.send_message(peer,"Выберите опцию", buttons)
+
 #TODO
 def send_guides(id, peer):
     bot.messaging.send_message(peer, 'Sending guides')
@@ -30,7 +46,8 @@ def auth(id, peer):
         send_manager_buttons(id, peer) if is_manager(id) else send_guides(id, peer) 
     else:
         #TODO WORK WITH TOKEN
-        bot.messaging.send_message('You are not sing in')
+        bot.messaging.send_message(peer, 'You are not sing in')
+
 
 # Main fun
 def main(*params):
@@ -39,7 +56,13 @@ def main(*params):
 
     bot.messaging.send_message(peer, 'Hey')
     auth(id, peer)
-    
+
+def on_click(*params):
+    id = params[0].uid
+    value = params[0].value
+    peer = bot.users.get_user_peer_by_id(id)
+
+    bot.messaging.send_message(peer, 'you click button ' + value)    
 
 if __name__ == "__main__":
     bot = DialogBot.get_secure_bot(
@@ -50,4 +73,4 @@ if __name__ == "__main__":
     )
 
 # work like return , block code after, if want to use code after, use async vers
-bot.messaging.on_message(main)
+bot.messaging.on_message(main, on_click)
