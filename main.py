@@ -64,12 +64,19 @@ def auth(id, peer):
         bot.messaging.send_message(peer, 'You are not sing in')
 
 def start_text(peer):
-    bot.messaging.send_message(peer, 'This is start message')
+    bot.messaging.send_message(peer, 'This is start message, you can use /info to get details!')
+
+def info_text(peer):
+    bot.messaging.send_message(peer, 'This is info message')
 
 # Main fun
 def main(*params):
     id = params[0].peer.id
     peer = params[0].peer
+
+    if params[0].message.textMessage.text == "/info":
+        info_text(peer)
+        return 
 
     bot.messaging.send_message(peer, 'Hey')
 
