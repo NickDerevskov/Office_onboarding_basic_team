@@ -26,20 +26,35 @@ def send_manager_buttons(id, peer):
             [
                 interactive_media.InteractiveMedia(
                     1,
-                    interactive_media.InteractiveMediaButton('Add', "button_one"),
+                    interactive_media.InteractiveMediaButton('add', "Add guide"),
                 ),
                 interactive_media.InteractiveMedia(
                     150,
-                    interactive_media.InteractiveMediaButton("Delete", "button_two")
+                    interactive_media.InteractiveMediaButton("get_token", "Get token")
                 ),
             ]
         )]
 
-    bot.messaging.send_message(peer,"Выберите опцию", buttons)
+    bot.messaging.send_message(peer, "Choose option", buttons)
 
 #TODO
 def send_guides(id, peer):
     bot.messaging.send_message(peer, 'Sending guides')
+
+    buttons = [interactive_media.InteractiveMediaGroup(
+            [
+                interactive_media.InteractiveMedia(
+                    2,
+                    interactive_media.InteractiveMediaButton('kitchen', "Guide about kitchen"),
+                ),
+                interactive_media.InteractiveMedia(
+                    3,
+                    interactive_media.InteractiveMediaButton("wifi", "Guide about wifi")
+                ),
+            ]
+        )]
+
+    bot.messaging.send_message(peer,"Choose guide", buttons)
 
 def auth(id, peer):
     if is_exist(id):
@@ -60,6 +75,7 @@ def main(*params):
 def on_click(*params):
     id = params[0].uid
     value = params[0].value
+    print(params)
     peer = bot.users.get_user_peer_by_id(id)
 
     bot.messaging.send_message(peer, 'you click button ' + value)    
