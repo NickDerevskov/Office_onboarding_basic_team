@@ -63,6 +63,8 @@ def auth(id, peer):
         #TODO WORK WITH TOKEN
         bot.messaging.send_message(peer, 'You are not sing in')
 
+def start_text(peer):
+    bot.messaging.send_message(peer, 'This is start message')
 
 # Main fun
 def main(*params):
@@ -70,6 +72,11 @@ def main(*params):
     peer = params[0].peer
 
     bot.messaging.send_message(peer, 'Hey')
+
+    if params[0].message.textMessage.text == "/start":
+        start_text(peer)
+
+    time.sleep(2) # for better usage
     auth(id, peer)
 
 def on_click(*params):
