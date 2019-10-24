@@ -220,11 +220,16 @@ def add_guide(id, company, content, title):
         {"company": company, "value": value, "content": content, "title": title}
     )
 
+def create_company(peer, *params):
+    bot.messaging.send_message(peer, "Создайте компанию /company {Company Name}")
 
 def on_click(*params):
     id = params[0].uid
     value = params[0].value
     peer = bot.users.get_user_peer_by_id(id)
+    if (value == "create_company"):
+        create_company(peer, *params)
+
     if (value == "create_company"):
         create_company(peer, *params)
 
