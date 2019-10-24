@@ -155,7 +155,7 @@ def main(*params):
 
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
-    if("/company" in params[0].message.textMessage.text ):
+    if(params[0].message.textMessage.text[0:8] == "/company"):
         reviews.insert_one({"company": params[0].message.textMessage.text[9:]})
     #time.sleep(2)  # for better usage
     auth(id, peer, *params)
