@@ -155,6 +155,7 @@ def main(*params):
 
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
+        return 
     if(params[0].message.textMessage.text[0:8] == "/company"):
         reviews.insert_one({"type": "Office-manager", "company": params[0].message.textMessage.text[9:], "id": id})
         bot.messaging.send_message(peer, "Компания успешно создана. Теперь вы админ")
