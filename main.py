@@ -189,6 +189,7 @@ def render_guides_buttons(peer, guides):
     bot.messaging.send_message(peer, "Choose guide", buttons)
 
 
+
 def guide_list(id, peer):
     user = reviews.find_one({"id": id})
     guide_list_res = list(guides.find({"company": user["company"]}))
