@@ -3,71 +3,141 @@ from dialog_bot_sdk import interactive_media
 from pymongo import MongoClient
 import grpc
 import time
+import json
 
 # Utils
-client = MongoClient("mongodb://team:123ert@ds018839.mlab.com:18839/new_hackaton", retryWrites= False)
+client = MongoClient(
+    "mongodb://team:123ert@ds018839.mlab.com:18839/new_hackaton", retryWrites=False
+)
 db = client.new_hackaton
 reviews = db.reviews
-bot_token = '4a3a998e50c55e13fb4ef9a52a224303602da6af'
+bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
+tokens = db.tokens
+peers = db.peers
+
 # https://github.com/dialogs/chatbot-hackathon - basic things
 # https://hackathon.transmit.im/web/#/im/u2108492517 - bot
 
+
 def is_exist(id):
-    return False if reviews.find_one({"id":id}) is None else True
+    return False if reviews.find_one({"id": id}) is None else True
+
 
 def is_manager(id):
-    return True if reviews.find_one({"id":id})['name'] == "Office-manager" else False
+    return True if reviews.find_one({"id": id})["name"] == "Office-manager" else False
 
-#TODO
+
+def on_msg(msg, peer):
+    bot.messaging.send_message(peer, msg)
+
+
+# TODO
 def send_manager_buttons(id, peer):
-    bot.messaging.send_message(peer, 'Sending manager buttons')
+    bot.messaging.send_message(peer, "Sending manager buttons")
 
-    buttons = [interactive_media.InteractiveMediaGroup(
+    buttons = [
+        interactive_media.InteractiveMediaGroup(
             [
                 interactive_media.InteractiveMedia(
-                    1,
-                    interactive_media.InteractiveMediaButton('add', "Add guide"),
+                    1, interactive_media.InteractiveMediaButton("add", "Add guide")
                 ),
                 interactive_media.InteractiveMedia(
                     150,
-                    interactive_media.InteractiveMediaButton("get_token", "Get token")
+                    interactive_media.InteractiveMediaButton("get_token", "Get token"),
                 ),
             ]
-        )]
+        )
+    ]
 
     bot.messaging.send_message(peer, "Choose option", buttons)
 
-#TODO
-def send_guides(id, peer):
-    bot.messaging.send_message(peer, 'Sending guides')
 
-    buttons = [interactive_media.InteractiveMediaGroup(
+# TODO
+def send_guides(id, peer):
+    bot.messaging.send_message(peer, "Sending guides")
+
+    buttons = [
+        interactive_media.InteractiveMediaGroup(
             [
                 interactive_media.InteractiveMedia(
                     2,
-                    interactive_media.InteractiveMediaButton('kitchen', "Guide about kitchen"),
+                    interactive_media.InteractiveMediaButton(
+                        "kitchen", "Guide about kitchen"
+                    ),
                 ),
                 interactive_media.InteractiveMedia(
                     3,
-                    interactive_media.InteractiveMediaButton("wifi", "Guide about wifi")
+                    interactive_media.InteractiveMediaButton(
+                        "wifi", "Guide about wifi"
+                    ),
                 ),
             ]
-        )]
+        )
+    ]
 
-    bot.messaging.send_message(peer,"Choose guide", buttons)
+    bot.messaging.send_message(peer, "Choose guide", buttons)
+
 
 def auth(id, peer):
     if is_exist(id):
-        send_manager_buttons(id, peer) if is_manager(id) else send_guides(id, peer) 
+        send_manager_buttons(id, peer) if is_manager(id) else send_guides(id, peer)
     else:
-        #TODO WORK WITH TOKEN
-        bot.messaging.send_message(peer, 'You are not sing in')
+        # TODO WORK WITH TOKEN
+        bot.messaging.send_message(peer, "You are not sing in")
+
 
 def start_text(peer):
-    bot.messaging.send_message(peer, 'This is start message, you can use /info to get details!')
+    bot.messaging.send_message(
+        peer, "This is start message, you can use /info to get details!"
+    )
+
 
 def info_text(peer):
-    bot.messaging.send_message(peer, 'This is info message')
+    bot.messaging.send_message(peer, "This is info message")
+
+
+def add_user_to_users(id):
+    reviews.insert_one({"name": "User", "id": id})
+
+
+def has_token(id, *params):
+    message = params[0].message.textMessage.text
+    if message == "hello":
+        return whose_token(message, id, params[0].peer)
+    else:
+        return want_to_create(*params)
+
+
+def whose_token(text_token, id, peer):
+    token_type = tokens.find_one({"token": text_token})
+    if token_type is None:
+        return on_msg("Братан, ты опоздал", peer)
+    if token_type["Type"] == "Office-manager":
+        on_msg("Ты одмен", peer)
+        return add_user_to_admins(id)
+    else:
+        on_msg("Ты юзер", peer)
+        return add_user_to_users(id)
+
+
+def want_to_create(*params):
+    bot.messaging.send_message(
+        params[0].peer,
+        "Создай компанию, плз",
+        [
+            interactive_media.InteractiveMediaGroup(
+                [
+                    interactive_media.InteractiveMedia(
+                        1, interactive_media.InteractiveMediaButton("Test", "Давай")
+                    ),
+                    interactive_media.InteractiveMedia(
+                        1, interactive_media.InteractiveMediaButton("Test", "Не давай")
+                    ),
+                ]
+            )
+        ],
+    )
+
 
 # Main fun
 def main(*params):
@@ -76,15 +146,20 @@ def main(*params):
 
     if params[0].message.textMessage.text == "/info":
         info_text(peer)
-        return 
+        return
 
-    bot.messaging.send_message(peer, 'Hey')
+    bot.messaging.send_message(peer, "Hey")
 
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
 
-    time.sleep(2) # for better usage
+    time.sleep(2)  # for better usage
     auth(id, peer)
+    # user = bot.users.get_user_by_id(id)
+    # on_msg("Hello user " + user.data.name, params[0].peer)
+    # has_token(id, *params)
+    # return
+
 
 def on_click(*params):
     id = params[0].uid
@@ -92,13 +167,14 @@ def on_click(*params):
     print(params)
     peer = bot.users.get_user_peer_by_id(id)
 
-    bot.messaging.send_message(peer, 'you click button ' + value)    
+    bot.messaging.send_message(peer, "you click button " + value)
+
 
 if __name__ == "__main__":
     bot = DialogBot.get_secure_bot(
         "hackathon-mob.transmit.im",  # bot endpoint (specify different endpoint if you want to connect to your on-premise environment)
         grpc.ssl_channel_credentials(),  # SSL credentials (empty by default!)
-        bot_token,  # bot token
+        bot_token,  # bot token Nikita , Nikita 2 - "d3bdd8ab024c03560ecf3350bcc3c250a0bbe9cd",
         verbose=False,  # optional parameter, when it's True bot prints info about the called methods, False by default
     )
 
