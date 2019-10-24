@@ -11,7 +11,7 @@ client = MongoClient(
 )
 db = client.new_hackaton
 reviews = db.reviews
-bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
+bot_token = "fc1595f3591f137461a1ad6441062e083fd366a1"
 tokens = db.tokens
 peers = db.peers
 
@@ -51,12 +51,12 @@ def whose_token(text_token, id, peer):
     token_type = tokens.find_one({"token": text_token})
     if token_type is None:
         return on_msg("Братан, ты опоздал", peer)
-    if token_type["Type"] == "Office-manager":
-        on_msg("Ты одмен", peer)
-        return add_user_to_admins(id)
-    else:
-        on_msg("Ты юзер", peer)
-        return add_user_to_users(id)
+    #if token_type["Type"] == "Office-manager":
+        #on_msg("Ты одмен", peer)
+        #return add_user_to_admins(id)
+    #else:
+        #on_msg("Ты юзер", peer)
+        #return add_user_to_users(id)
 
 
 def want_to_create(*params):
@@ -67,7 +67,7 @@ def want_to_create(*params):
             interactive_media.InteractiveMediaGroup(
                 [
                     interactive_media.InteractiveMedia(
-                        1, interactive_media.InteractiveMediaButton("Test", "Давай")
+                        1, interactive_media.InteractiveMediaButton("create_company", "Давай")
                     ),
                     interactive_media.InteractiveMedia(
                         1, interactive_media.InteractiveMediaButton("Test", "Не давай")
@@ -147,7 +147,6 @@ def info_text(peer):
 def main(*params):
     id = params[0].peer.id
     peer = params[0].peer
-
     if params[0].message.textMessage.text == "/info":
         info_text(peer)
         return
@@ -156,22 +155,23 @@ def main(*params):
 
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
-
-    time.sleep(2)  # for better usage
+    if("/company" in params[0].message.textMessage.text ):
+        reviews.insert_one({"company": params[0].message.textMessage.text[9:]})
+    #time.sleep(2)  # for better usage
     auth(id, peer, *params)
     # user = bot.users.get_user_by_id(id)
     # on_msg("Hello user " + user.data.name, params[0].peer)
     #
     # return
 
-
+def create_company(peer, *params):
+    bot.messaging.send_message(peer, "Создайте компанию /company {Company Name}")
 def on_click(*params):
     id = params[0].uid
-    value = params[0].value
-    # print(params)
     peer = bot.users.get_user_peer_by_id(id)
-
-    bot.messaging.send_message(peer, "you click button " + value)
+    value = params[0].value
+    if (value == "create_company"):
+        create_company(peer, *params)
 
 
 if __name__ == "__main__":
