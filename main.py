@@ -20,7 +20,7 @@ peers = db.peers
 
 
 def add_user_to_admins(id):
-    reviews.insert_one({"name": "Office-manager", "id": id})
+    reviews.insert_one({"type": "Office-manager", "id": id})
 
 
 def is_exist(id):
@@ -28,7 +28,7 @@ def is_exist(id):
 
 
 def is_manager(id):
-    return True if reviews.find_one({"id": id})["name"] == "Office-manager" else False
+    return True if reviews.find_one({"id": id})["type"] == "Office-manager" else False
 
 
 def on_msg(msg, peer):
@@ -36,7 +36,7 @@ def on_msg(msg, peer):
 
 
 def add_user_to_users(id):
-    reviews.insert_one({"name": "User", "id": id})
+    reviews.insert_one({"type": "User", "id": id})
 
 
 def has_token(id, *params):
@@ -156,7 +156,11 @@ def main(*params):
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
     if(params[0].message.textMessage.text[0:8] == "/company"):
-        reviews.insert_one({"company": params[0].message.textMessage.text[9:]})
+        reviews.insert_one({"type": "Office-manager", "company": params[0].message.textMessage.text[9:], "id": id})
+        bot.messaging.send_message(peer, "Компания успешно создана. Теперь вы админ")
+        auth(id, peer, *params)
+        return
+
     #time.sleep(2)  # for better usage
     auth(id, peer, *params)
     # user = bot.users.get_user_by_id(id)
