@@ -163,6 +163,7 @@ def main(*params):
 
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
+
     if(params[0].message.textMessage.text[0:8] == "/company"):
         reviews.insert_one({"company": params[0].message.textMessage.text[9:]})
     #time.sleep(2)  # for better usage
@@ -222,6 +223,7 @@ def add_guide(id, company, content, title):
 
 def create_company(peer, *params):
     bot.messaging.send_message(peer, "Создайте компанию /company {Company Name}")
+
 
 def on_click(*params):
     id = params[0].uid
