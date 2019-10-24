@@ -3,7 +3,6 @@ from dialog_bot_sdk import interactive_media
 from pymongo import MongoClient
 import grpc
 import time
-import json
 
 # Utils
 client = MongoClient(
@@ -11,7 +10,8 @@ client = MongoClient(
 )
 db = client.new_hackaton
 reviews = db.reviews
-bot_token = "fc1595f3591f137461a1ad6441062e083fd366a1"
+guides = db.guides
+bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
 tokens = db.tokens
 peers = db.peers
 
@@ -20,7 +20,7 @@ peers = db.peers
 
 
 def add_user_to_admins(id):
-    reviews.insert_one({"name": "Office-manager", "id": id})
+    reviews.insert_one({"type": "Office-manager", "id": id})
 
 
 def is_exist(id):
@@ -28,7 +28,7 @@ def is_exist(id):
 
 
 def is_manager(id):
-    return True if reviews.find_one({"id": id})["name"] == "Office-manager" else False
+    return True if reviews.find_one({"id": id})["type"] == "Office-manager" else False
 
 
 def on_msg(msg, peer):
@@ -36,7 +36,7 @@ def on_msg(msg, peer):
 
 
 def add_user_to_users(id):
-    reviews.insert_one({"name": "User", "id": id})
+    reviews.insert_one({"type": "User", "id": id})
 
 
 def has_token(id, *params):
@@ -49,6 +49,7 @@ def has_token(id, *params):
 
 def whose_token(text_token, id, peer):
     token_type = tokens.find_one({"token": text_token})
+
     if token_type is None:
         return on_msg("Братан, ты опоздал", peer)
     #if token_type["Type"] == "Office-manager":
@@ -86,11 +87,18 @@ def send_manager_buttons(id, peer):
         interactive_media.InteractiveMediaGroup(
             [
                 interactive_media.InteractiveMedia(
-                    1, interactive_media.InteractiveMediaButton("add", "Add guide")
+                    1,
+                    interactive_media.InteractiveMediaButton("add_guide", "Add guide"),
                 ),
                 interactive_media.InteractiveMedia(
-                    150,
+                    1,
                     interactive_media.InteractiveMediaButton("get_token", "Get token"),
+                ),
+                interactive_media.InteractiveMedia(
+                    1,
+                    interactive_media.InteractiveMediaButton(
+                        "get_guides", "Give me guides"
+                    ),
                 ),
             ]
         )
@@ -166,12 +174,36 @@ def main(*params):
 
 def create_company(peer, *params):
     bot.messaging.send_message(peer, "Создайте компанию /company {Company Name}")
+
+def render_buttons(guides):
+        pass
+
+
+def get_guides(id, peer):
+    user = reviews.find_one({"id": id})
+    # bot.messaging.send_message(peer, "" + a)
+    # print(guides.find({"company": {"company": user["company"]}}))
+    guides = list(guides.find({"company":user["company"]}))
+    render_buttons(guides)
+    # db.collection.find( { qty: { $gt: 4 } } )
+    # db.collection.find({ "company": 4 })
+
+
 def on_click(*params):
     id = params[0].uid
     peer = bot.users.get_user_peer_by_id(id)
     value = params[0].value
     if (value == "create_company"):
         create_company(peer, *params)
+
+    if value == "add_guide":
+        bot.messaging.send_message(peer, "you click button " + value)
+
+    if value == "get_token":
+        bot.messaging.send_message(peer, "you click button " + value)
+
+    if value == "get_guides":
+        get_guides(id, peer)
 
 
 if __name__ == "__main__":
