@@ -19,6 +19,10 @@ peers = db.peers
 # https://hackathon.transmit.im/web/#/im/u2108492517 - bot
 
 
+def add_user_to_admins(id):
+    reviews.insert_one({"name": "Office-manager", "id": id})
+
+
 def is_exist(id):
     return False if reviews.find_one({"id": id}) is None else True
 
@@ -29,6 +33,49 @@ def is_manager(id):
 
 def on_msg(msg, peer):
     bot.messaging.send_message(peer, msg)
+
+
+def add_user_to_users(id):
+    reviews.insert_one({"name": "User", "id": id})
+
+
+def has_token(id, *params):
+    message = params[0].message.textMessage.text
+    if message == "hello":
+        return whose_token(message, id, params[0].peer)
+    else:
+        return want_to_create(*params)
+
+
+def whose_token(text_token, id, peer):
+    token_type = tokens.find_one({"token": text_token})
+    if token_type is None:
+        return on_msg("Братан, ты опоздал", peer)
+    if token_type["Type"] == "Office-manager":
+        on_msg("Ты одмен", peer)
+        return add_user_to_admins(id)
+    else:
+        on_msg("Ты юзер", peer)
+        return add_user_to_users(id)
+
+
+def want_to_create(*params):
+    bot.messaging.send_message(
+        params[0].peer,
+        "Создай компанию, плз",
+        [
+            interactive_media.InteractiveMediaGroup(
+                [
+                    interactive_media.InteractiveMedia(
+                        1, interactive_media.InteractiveMediaButton("Test", "Давай")
+                    ),
+                    interactive_media.InteractiveMedia(
+                        1, interactive_media.InteractiveMediaButton("Test", "Не давай")
+                    ),
+                ]
+            )
+        ],
+    )
 
 
 # TODO
@@ -78,12 +125,12 @@ def send_guides(id, peer):
     bot.messaging.send_message(peer, "Choose guide", buttons)
 
 
-def auth(id, peer):
+def auth(id, peer, *params):
     if is_exist(id):
         send_manager_buttons(id, peer) if is_manager(id) else send_guides(id, peer)
     else:
         # TODO WORK WITH TOKEN
-        bot.messaging.send_message(peer, "You are not sing in")
+        has_token(id, *params)
 
 
 def start_text(peer):
@@ -94,49 +141,6 @@ def start_text(peer):
 
 def info_text(peer):
     bot.messaging.send_message(peer, "This is info message")
-
-
-def add_user_to_users(id):
-    reviews.insert_one({"name": "User", "id": id})
-
-
-def has_token(id, *params):
-    message = params[0].message.textMessage.text
-    if message == "hello":
-        return whose_token(message, id, params[0].peer)
-    else:
-        return want_to_create(*params)
-
-
-def whose_token(text_token, id, peer):
-    token_type = tokens.find_one({"token": text_token})
-    if token_type is None:
-        return on_msg("Братан, ты опоздал", peer)
-    if token_type["Type"] == "Office-manager":
-        on_msg("Ты одмен", peer)
-        return add_user_to_admins(id)
-    else:
-        on_msg("Ты юзер", peer)
-        return add_user_to_users(id)
-
-
-def want_to_create(*params):
-    bot.messaging.send_message(
-        params[0].peer,
-        "Создай компанию, плз",
-        [
-            interactive_media.InteractiveMediaGroup(
-                [
-                    interactive_media.InteractiveMedia(
-                        1, interactive_media.InteractiveMediaButton("Test", "Давай")
-                    ),
-                    interactive_media.InteractiveMedia(
-                        1, interactive_media.InteractiveMediaButton("Test", "Не давай")
-                    ),
-                ]
-            )
-        ],
-    )
 
 
 # Main fun
@@ -154,17 +158,17 @@ def main(*params):
         start_text(peer)
 
     time.sleep(2)  # for better usage
-    auth(id, peer)
+    auth(id, peer, *params)
     # user = bot.users.get_user_by_id(id)
     # on_msg("Hello user " + user.data.name, params[0].peer)
-    # has_token(id, *params)
+    #
     # return
 
 
 def on_click(*params):
     id = params[0].uid
     value = params[0].value
-    print(params)
+    # print(params)
     peer = bot.users.get_user_peer_by_id(id)
 
     bot.messaging.send_message(peer, "you click button " + value)
