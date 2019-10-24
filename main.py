@@ -175,29 +175,94 @@ def main(*params):
 def create_company(peer, *params):
     bot.messaging.send_message(peer, "Создайте компанию /company {Company Name}")
 
-def render_buttons(guides):
-        pass
+def render_guides_buttons(peer, guides):
+    def make_button(guide):
+        return interactive_media.InteractiveMedia(
+            1, interactive_media.InteractiveMediaButton(guide["value"], guide["title"])
+        )
+
+    buttons = [
+        interactive_media.InteractiveMediaGroup([make_button(x) for x in guides])
+    ]
+
+    bot.messaging.send_message(peer, "Choose guide", buttons)
+
+
+def guide_list(id, peer):
+    user = reviews.find_one({"id": id})
+    guide_list_res = list(guides.find({"company": user["company"]}))
+    return guide_list_res
 
 
 def get_guides(id, peer):
-    user = reviews.find_one({"id": id})
-    # bot.messaging.send_message(peer, "" + a)
-    # print(guides.find({"company": {"company": user["company"]}}))
-    guides = list(guides.find({"company":user["company"]}))
-    render_buttons(guides)
-    # db.collection.find( { qty: { $gt: 4 } } )
-    # db.collection.find({ "company": 4 })
+    guide_list_data = guide_list(id, peer)
+    render_guides_buttons(peer, guide_list_data)
+
+
+def generate_guide_value(company):
+    number = len(list(guides.find({"company": company})))
+    if number == 0:
+        res = "guide" + "1"
+    else:
+        res = "guide" + str(number + 2)
+
+    return res
+
+
+def get_company(id):
+    res = reviews.find_one({"id": id})["company"]
+    return res
+
+
+def add_guide(id, company, content, title):
+    value = generate_guide_value(company)
+    guides.insert_one(
+        {"company": company, "value": value, "content": content, "title": title}
+    )
 
 
 def on_click(*params):
     id = params[0].uid
-    peer = bot.users.get_user_peer_by_id(id)
     value = params[0].value
+    peer = bot.users.get_user_peer_by_id(id)
     if (value == "create_company"):
         create_company(peer, *params)
 
+    all_guides = guide_list(id, peers)
+    guides_values = [x["value"] for x in all_guides]
+
+    if value in guides_values:
+        guide = guides.find_one({"value": value})
+        bot.messaging.send_message(peer, guide["title"])
+
+        time.sleep(1)
+
+        bot.messaging.send_message(peer, guide["content"])
+
     if value == "add_guide":
-        bot.messaging.send_message(peer, "you click button " + value)
+        bot.messaging.send_message(peer, "Write Title for guide")
+
+        # TODO DO BETTER PLEASE IT IS SIDE EFFECTS!
+        def get_content_and_go_main(*params):
+            title = params[0].message.textMessage.text
+
+            bot.messaging.send_message(peer, "Write Content for guide content")
+
+            def fn_and_go_main(*params):
+                content = params[0].message.textMessage.text
+                company = get_company(id)
+
+                # save guide
+                add_guide(id, company, content, title)
+                bot.messaging.send_message(peer, "You created guide")
+
+                main(*params)
+
+                bot.messaging.on_message(main, on_click)
+
+            bot.messaging.on_message(fn_and_go_main)
+
+        bot.messaging.on_message(get_content_and_go_main)
 
     if value == "get_token":
         bot.messaging.send_message(peer, "you click button " + value)
