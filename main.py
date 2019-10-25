@@ -154,7 +154,7 @@ def send_guides(id, peer):
 
 def auth(id, peer, *params):
     if is_exist(id):
-        send_manager_buttons(id, peer) if is_manager(id) else send_guides(id, peer)
+        send_manager_buttons(id, peer) if is_manager(id) else get_guides(id, peer)
     else:
         # TODO WORK WITH TOKEN
         has_token(id, *params)
