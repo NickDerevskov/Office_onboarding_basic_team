@@ -163,7 +163,6 @@ def main(*params):
 
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
-
     if(params[0].message.textMessage.text[0:8] == "/company"):
         reviews.insert_one({"company": params[0].message.textMessage.text[9:]})
     #time.sleep(2)  # for better usage
@@ -172,9 +171,6 @@ def main(*params):
     # on_msg("Hello user " + user.data.name, params[0].peer)
     #
     # return
-
-def create_company(peer, *params):
-    bot.messaging.send_message(peer, "Создайте компанию /company {Company Name}")
 
 def render_guides_buttons(peer, guides):
     def make_button(guide):
@@ -187,7 +183,6 @@ def render_guides_buttons(peer, guides):
     ]
 
     bot.messaging.send_message(peer, "Choose guide", buttons)
-
 
 
 def guide_list(id, peer):
@@ -225,14 +220,10 @@ def add_guide(id, company, content, title):
 def create_company(peer, *params):
     bot.messaging.send_message(peer, "Создайте компанию /company {Company Name}")
 
-
 def on_click(*params):
     id = params[0].uid
     value = params[0].value
     peer = bot.users.get_user_peer_by_id(id)
-    if (value == "create_company"):
-        create_company(peer, *params)
-
     if (value == "create_company"):
         create_company(peer, *params)
 
