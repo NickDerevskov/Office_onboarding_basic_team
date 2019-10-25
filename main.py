@@ -12,7 +12,7 @@ client = MongoClient(
 db = client.new_hackaton
 users = db.users
 guides = db.guides
-bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
+bot_token = "fc1595f3591f137461a1ad6441062e083fd366a1"
 tokens = db.tokens
 
 # https://github.com/dialogs/chatbot-hackathon - basic things
@@ -167,19 +167,13 @@ def main(*params):
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
         return
-    if params[0].message.textMessage.text[0:8] == "/company":
-        users.insert_one(
-            {
-                "type": "Office-manager",
-                "company": params[0].message.textMessage.text[9:],
-                "id": id,
-            }
-        )
-        bot.messaging.send_message(peer, "Компания успешно создана. Теперь вы админ")
-        auth(id, peer, *params)
-        return
 
+    # time.sleep(2)  # for better usage
     auth(id, peer, *params)
+    # user = bot.users.get_user_by_id(id)
+    # on_msg("Hello user " + user.data.name, params[0].peer)
+    #
+    # return
 
 
 def render_guides_buttons(peer, guides):
@@ -227,10 +221,6 @@ def add_guide(id, company, content, title):
     )
 
 
-def create_company(peer, *params):
-    bot.messaging.send_message(peer, "Создайте компанию /company {Company Name}")
-
-
 def delete_guide(id, peer):
     bot.messaging.send_message(peer, "Напишите название гайда который хотите удалить")
 
@@ -256,7 +246,23 @@ def on_click(*params):
     value = params[0].value
     peer = bot.users.get_user_peer_by_id(id)
     if value == "create_company":
-        create_company(peer, *params)
+        bot.messaging.send_message(peer, "Введите имя компании")
+
+        def waiting_of_creating_company(*params):
+            reviews.insert_one(
+                {
+                    "type": "Office-manager",
+                    "company": params[0].message.textMessage.text,
+                    "id": id,
+                }
+            )
+            bot.messaging.send_message(
+                peer, "Компания успешно создана. Теперь вы админ"
+            )
+            auth(id, peer, *params)
+            bot.messaging.on_message(main, on_click)
+
+        bot.messaging.on_message(waiting_of_creating_company)
 
     all_guides = guide_list(id)
     guides_values = [x["value"] for x in all_guides]
