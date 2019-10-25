@@ -1,5 +1,6 @@
 from dialog_bot_sdk.bot import DialogBot
 from dialog_bot_sdk import interactive_media
+from threading import Timer
 from pymongo import MongoClient
 import grpc
 import time
@@ -13,14 +14,17 @@ users = db.users
 guides = db.guides
 bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
 tokens = db.tokens
-peers = db.peers
 
 # https://github.com/dialogs/chatbot-hackathon - basic things
 # https://hackathon.transmit.im/web/#/im/u2108492517 - bot
 
 
-def add_user_to_admins(id):
-    users.insert_one({"type": "Office-manager", "id": id})
+def add_user_to_admins(id, company):
+    users.insert_one({"type": "Office-manager", "id": id, "company":company})
+
+
+def add_user_to_users(id, company):
+    users.insert_one({"type": "User", "id": id, "company":company})
 
 
 def is_exist(id):
@@ -35,29 +39,31 @@ def on_msg(msg, peer):
     bot.messaging.send_message(peer, msg)
 
 
-def add_user_to_users(id):
-    users.insert_one({"type": "User", "id": id})
-
-
 def has_token(id, *params):
     message = params[0].message.textMessage.text
-    if message == "hello":
-        return whose_token(message, id, params[0].peer)
-    else:
+    token = tokens.find_one({"token": message})
+    if token is None:
         return want_to_create(*params)
+    else:
+        return whose_token(token, id, params[0].peer)
+    
 
+def whose_token(token, id, peer):
+    current_time = int(time.time()*1000.0)
+    current_token = tokens.find_one({"token": token})
+    
+    if(current_time - int(token['time']) >= 24*60*60*1000):
+        delete_token(token)
+        return on_msg("Токен устарел Т_Т, проси новый", peer)
 
-def whose_token(text_token, id, peer):
-    token_type = tokens.find_one({"token": text_token})
-
-    if token_type is None:
-        return on_msg("Братан, ты опоздал", peer)
-    # if token_type["Type"] == "Office-manager":
-    # on_msg("Ты одмен", peer)
-    # return add_user_to_admins(id)
-    # else:
-    # on_msg("Ты юзер", peer)
-    # return add_user_to_users(id)
+    if token["type"] == "Office-manager":
+        on_msg("Ты одмен", peer)
+        send_manager_buttons(id, peer)
+        return add_user_to_admins(id, token["company"])
+    else:
+        on_msg("Ты юзер", peer)
+        send_guides(id, peer)
+        return add_user_to_users(id, token["company"])
 
 
 def want_to_create(*params):
@@ -211,14 +217,14 @@ def render_guides_buttons(peer, guides):
     bot.messaging.send_message(peer, "Choose guide", buttons)
 
 
-def guide_list(id, peer):
+def guide_list(id):
     user = users.find_one({"id": id})
     guide_list_res = list(guides.find({"company": user["company"]}))
     return guide_list_res
 
 
 def get_guides(id, peer):
-    guide_list_data = guide_list(id, peer)
+    guide_list_data = guide_list(id)
     render_guides_buttons(peer, guide_list_data)
 
 
@@ -228,7 +234,6 @@ def generate_guide_value(company):
         res = "guide" + "1"
     else:
         res = "guide" + str(number + 2)
-
     return res
 
 
@@ -271,7 +276,7 @@ def on_click(*params):
     if value == "create_company":
         create_company(peer, *params)
 
-    all_guides = guide_list(id, peers)
+    all_guides = guide_list(id)
     guides_values = [x["value"] for x in all_guides]
 
     if value in guides_values:
@@ -311,10 +316,17 @@ def on_click(*params):
         delete_guide(id, peer)
 
     if value == "get_token":
-        bot.messaging.send_message(peer, "you click button " + value)
+        current_time = str(int(time.time()*1000.0))
+        token = get_company(id) + current_time
+        tokens.insert_one({"token":token, "type":"user", "company":get_company(id), "time": current_time})
+        bot.messaging.send_message(peer, "Ваш токен: " + token)
 
     if value == "get_guides":
         get_guides(id, peer)
+
+def delete_token(token):
+    tokens.delete_one({"_id":token["_id"]})
+    # print("deleted token: "+ token['token'])
 
 
 if __name__ == "__main__":
