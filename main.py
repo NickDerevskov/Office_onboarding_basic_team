@@ -203,9 +203,10 @@ def get_guides(id, peer):
 def generate_guide_value(company):
     number = len(list(guides.find({"company": company})))
     if number == 0:
-        res = "guide" + "1"
+        res = company + "1"
     else:
-        res = "guide" + str(number + 2)
+        res = company + str(number + 2)
+
     return res
 
 
