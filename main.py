@@ -9,7 +9,7 @@ client = MongoClient(
     "mongodb://team:123ert@ds018839.mlab.com:18839/new_hackaton", retryWrites=False
 )
 db = client.new_hackaton
-reviews = db.reviews
+users = db.users
 guides = db.guides
 bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
 tokens = db.tokens
@@ -20,15 +20,15 @@ peers = db.peers
 
 
 def add_user_to_admins(id):
-    reviews.insert_one({"type": "Office-manager", "id": id})
+    users.insert_one({"type": "Office-manager", "id": id})
 
 
 def is_exist(id):
-    return False if reviews.find_one({"id": id}) is None else True
+    return False if users.find_one({"id": id}) is None else True
 
 
 def is_manager(id):
-    return True if reviews.find_one({"id": id})["type"] == "Office-manager" else False
+    return True if users.find_one({"id": id})["type"] == "Office-manager" else False
 
 
 def on_msg(msg, peer):
@@ -36,7 +36,7 @@ def on_msg(msg, peer):
 
 
 def add_user_to_users(id):
-    reviews.insert_one({"type": "User", "id": id})
+    users.insert_one({"type": "User", "id": id})
 
 
 def has_token(id, *params):
@@ -52,12 +52,12 @@ def whose_token(text_token, id, peer):
 
     if token_type is None:
         return on_msg("Братан, ты опоздал", peer)
-    #if token_type["Type"] == "Office-manager":
-        #on_msg("Ты одмен", peer)
-        #return add_user_to_admins(id)
-    #else:
-        #on_msg("Ты юзер", peer)
-        #return add_user_to_users(id)
+    # if token_type["Type"] == "Office-manager":
+    # on_msg("Ты одмен", peer)
+    # return add_user_to_admins(id)
+    # else:
+    # on_msg("Ты юзер", peer)
+    # return add_user_to_users(id)
 
 
 def want_to_create(*params):
@@ -68,7 +68,10 @@ def want_to_create(*params):
             interactive_media.InteractiveMediaGroup(
                 [
                     interactive_media.InteractiveMedia(
-                        1, interactive_media.InteractiveMediaButton("create_company", "Давай")
+                        1,
+                        interactive_media.InteractiveMediaButton(
+                            "create_company", "Давай"
+                        ),
                     ),
                     interactive_media.InteractiveMedia(
                         1, interactive_media.InteractiveMediaButton("Test", "Не давай")
@@ -88,16 +91,32 @@ def send_manager_buttons(id, peer):
             [
                 interactive_media.InteractiveMedia(
                     1,
-                    interactive_media.InteractiveMediaButton("add_guide", "Add guide"),
-                ),
-                interactive_media.InteractiveMedia(
-                    1,
-                    interactive_media.InteractiveMediaButton("get_token", "Get token"),
+                    interactive_media.InteractiveMediaButton(
+                        "add_guide", "Добавить гайд"
+                    ),
                 ),
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "get_guides", "Give me guides"
+                        "get_user_token", "Получить ключ для юзера"
+                    ),
+                ),
+                interactive_media.InteractiveMedia(
+                    1,
+                    interactive_media.InteractiveMediaButton(
+                        "get_admin_token", "Получить ключ для админа"
+                    ),
+                ),
+                interactive_media.InteractiveMedia(
+                    1,
+                    interactive_media.InteractiveMediaButton(
+                        "delete_guide", "Удалить гайд"
+                    ),
+                ),
+                interactive_media.InteractiveMedia(
+                    1,
+                    interactive_media.InteractiveMediaButton(
+                        "get_guides", "Получить все гайды"
                     ),
                 ),
             ]
@@ -135,7 +154,7 @@ def send_guides(id, peer):
 
 def auth(id, peer, *params):
     if is_exist(id):
-        send_manager_buttons(id, peer) if is_manager(id) else send_guides(id, peer)
+        send_manager_buttons(id, peer) if is_manager(id) else get_guides(id, peer)
     else:
         # TODO WORK WITH TOKEN
         has_token(id, *params)
@@ -163,19 +182,21 @@ def main(*params):
 
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
-        return 
-    if(params[0].message.textMessage.text[0:8] == "/company"):
-        reviews.insert_one({"type": "Office-manager", "company": params[0].message.textMessage.text[9:], "id": id})
+        return
+    if params[0].message.textMessage.text[0:8] == "/company":
+        users.insert_one(
+            {
+                "type": "Office-manager",
+                "company": params[0].message.textMessage.text[9:],
+                "id": id,
+            }
+        )
         bot.messaging.send_message(peer, "Компания успешно создана. Теперь вы админ")
         auth(id, peer, *params)
         return
 
-    #time.sleep(2)  # for better usage
     auth(id, peer, *params)
-    # user = bot.users.get_user_by_id(id)
-    # on_msg("Hello user " + user.data.name, params[0].peer)
-    #
-    # return
+
 
 def render_guides_buttons(peer, guides):
     def make_button(guide):
@@ -191,7 +212,7 @@ def render_guides_buttons(peer, guides):
 
 
 def guide_list(id, peer):
-    user = reviews.find_one({"id": id})
+    user = users.find_one({"id": id})
     guide_list_res = list(guides.find({"company": user["company"]}))
     return guide_list_res
 
@@ -212,7 +233,7 @@ def generate_guide_value(company):
 
 
 def get_company(id):
-    res = reviews.find_one({"id": id})["company"]
+    res = users.find_one({"id": id})["company"]
     return res
 
 
@@ -222,14 +243,32 @@ def add_guide(id, company, content, title):
         {"company": company, "value": value, "content": content, "title": title}
     )
 
+
 def create_company(peer, *params):
     bot.messaging.send_message(peer, "Создайте компанию /company {Company Name}")
+
+
+def delete_guide(id, peer):
+    bot.messaging.send_message(peer, "Напишите название гайда который хотите удалить")
+
+    def delete(*params):
+        guide_name = params[0].message.textMessage.text
+        delete_res = guides.find_one_and_delete({"title": guide_name})
+        if delete_res is None:
+            bot.messaging.send_message(peer, "Гайда с таким названием не существует")
+        else:
+            bot.messaging.send_message(peer, "Гайд " + guide_name + " удалён")
+        auth(id, peer, *params)
+        bot.messaging.on_message(main, on_click)
+
+    bot.messaging.on_message(delete)
+
 
 def on_click(*params):
     id = params[0].uid
     value = params[0].value
     peer = bot.users.get_user_peer_by_id(id)
-    if (value == "create_company"):
+    if value == "create_company":
         create_company(peer, *params)
 
     all_guides = guide_list(id, peers)
@@ -267,6 +306,9 @@ def on_click(*params):
             bot.messaging.on_message(fn_and_go_main)
 
         bot.messaging.on_message(get_content_and_go_main)
+
+    if value == "delete_guide":
+        delete_guide(id, peer)
 
     if value == "get_token":
         bot.messaging.send_message(peer, "you click button " + value)
