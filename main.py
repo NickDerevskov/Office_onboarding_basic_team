@@ -49,6 +49,13 @@ def has_token(id, *params):
     
 
 def whose_token(token, id, peer):
+    current_time = int(time.time()*1000.0)
+    current_token = tokens.find_one({"token": token})
+    
+    if(current_time - int(token['time']) >= 24*60*60*1000):
+        delete_token(token)
+        return on_msg("Токен устарел Т_Т, проси новый", peer)
+
     if token["type"] == "Office-manager":
         on_msg("Ты одмен", peer)
         send_manager_buttons(id, peer)
@@ -313,22 +320,16 @@ def on_click(*params):
         token = get_company(id) + current_time
         tokens.insert_one({"token":token, "type":"user", "company":get_company(id), "time": current_time})
         bot.messaging.send_message(peer, "Ваш токен: " + token)
-        Timer(1*60*60, delete_tokens_every_hour).start()
 
     if value == "get_guides":
         get_guides(id, peer)
 
-def delete_tokens_every_hour():
-    current_time = int(time.time()*1000.0)
-    current_tokens = tokens.find({})
-    for token in current_tokens:
-        if(current_time - int(token['time']) >= 24*60*60*1000):
-            tokens.delete_one({"_id":token["_id"]})
-            # print("deleted token: "+ token['token'])
+def delete_token(token):
+    tokens.delete_one({"_id":token["_id"]})
+    # print("deleted token: "+ token['token'])
 
 
 if __name__ == "__main__":
-    Timer(1*60*60, delete_tokens_every_hour).start()
     bot = DialogBot.get_secure_bot(
         "hackathon-mob.transmit.im",  # bot endpoint (specify different endpoint if you want to connect to your on-premise environment)
         grpc.ssl_channel_credentials(),  # SSL credentials (empty by default!)
