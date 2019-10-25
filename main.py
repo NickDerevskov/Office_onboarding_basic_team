@@ -163,8 +163,13 @@ def main(*params):
 
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
+        return 
     if(params[0].message.textMessage.text[0:8] == "/company"):
-        reviews.insert_one({"company": params[0].message.textMessage.text[9:]})
+        reviews.insert_one({"type": "Office-manager", "company": params[0].message.textMessage.text[9:], "id": id})
+        bot.messaging.send_message(peer, "Компания успешно создана. Теперь вы админ")
+        auth(id, peer, *params)
+        return
+
     #time.sleep(2)  # for better usage
     auth(id, peer, *params)
     # user = bot.users.get_user_by_id(id)
