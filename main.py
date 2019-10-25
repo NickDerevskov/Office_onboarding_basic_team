@@ -20,11 +20,11 @@ tokens = db.tokens
 
 
 def add_user_to_admins(id, company):
-    users.insert_one({"type": "Office-manager", "id": id, "company":company})
+    users.insert_one({"type": "Office-manager", "id": id, "company": company})
 
 
 def add_user_to_users(id, company):
-    users.insert_one({"type": "User", "id": id, "company":company})
+    users.insert_one({"type": "User", "id": id, "company": company})
 
 
 def is_exist(id):
@@ -46,13 +46,13 @@ def has_token(id, *params):
         return want_to_create(*params)
     else:
         return whose_token(token, id, params[0].peer)
-    
+
 
 def whose_token(token, id, peer):
-    current_time = int(time.time()*1000.0)
+    current_time = int(time.time() * 1000.0)
     current_token = tokens.find_one({"token": token})
-    
-    if(current_time - int(token['time']) >= 24*60*60*1000):
+
+    if current_time - int(token["time"]) >= 24 * 60 * 60 * 1000:
         delete_token(token)
         return on_msg("Токен устарел Т_Т, проси новый", peer)
 
@@ -62,7 +62,8 @@ def whose_token(token, id, peer):
         return add_user_to_admins(id, token["company"])
     else:
         on_msg("Ты юзер", peer)
-        send_guides(id, peer)
+        # send_guides(id, peer)
+        # TODO add send guides
         return add_user_to_users(id, token["company"])
 
 
@@ -80,7 +81,10 @@ def want_to_create(*params):
                         ),
                     ),
                     interactive_media.InteractiveMedia(
-                        1, interactive_media.InteractiveMediaButton("Test", "Не давай")
+                        1,
+                        interactive_media.InteractiveMediaButton(
+                            "not_create_company", "Не давай"
+                        ),
                     ),
                 ]
             )
@@ -130,32 +134,6 @@ def send_manager_buttons(id, peer):
     ]
 
     bot.messaging.send_message(peer, "Choose option", buttons)
-
-
-# TODO
-def send_guides(id, peer):
-    bot.messaging.send_message(peer, "Sending guides")
-
-    buttons = [
-        interactive_media.InteractiveMediaGroup(
-            [
-                interactive_media.InteractiveMedia(
-                    2,
-                    interactive_media.InteractiveMediaButton(
-                        "kitchen", "Guide about kitchen"
-                    ),
-                ),
-                interactive_media.InteractiveMedia(
-                    3,
-                    interactive_media.InteractiveMediaButton(
-                        "wifi", "Guide about wifi"
-                    ),
-                ),
-            ]
-        )
-    ]
-
-    bot.messaging.send_message(peer, "Choose guide", buttons)
 
 
 def auth(id, peer, *params):
@@ -269,6 +247,10 @@ def delete_guide(id, peer):
     bot.messaging.on_message(delete)
 
 
+def delete_token(token):
+    tokens.delete_one({"_id": token["_id"]})
+
+
 def on_click(*params):
     id = params[0].uid
     value = params[0].value
@@ -315,17 +297,35 @@ def on_click(*params):
     if value == "delete_guide":
         delete_guide(id, peer)
 
-    if value == "get_token":
-        current_time = str(int(time.time()*1000.0))
+    if value == "get_user_token":
+        current_time = str(int(time.time() * 1000.0))
         token = get_company(id) + current_time
-        tokens.insert_one({"token":token, "type":"user", "company":get_company(id), "time": current_time})
-        bot.messaging.send_message(peer, "Ваш токен: " + token)
+        tokens.insert_one(
+            {
+                "token": token,
+                "type": "user",
+                "company": get_company(id),
+                "time": current_time,
+            }
+        )
+        bot.messaging.send_message(peer, "Токен для пользователя: " + token)
+
+    if value == "get_admin_token":
+        current_time = str(int(time.time() * 1000.0))
+        token = get_company(id) + current_time
+        tokens.insert_one(
+            {
+                "token": token,
+                "type": "Office-manager",
+                "company": get_company(id),
+                "time": current_time,
+            }
+        )
+        bot.messaging.send_message(peer, "Токен для офис менеджера: " + token)
 
     if value == "get_guides":
         get_guides(id, peer)
 
-def delete_token(token):
-    tokens.delete_one({"_id":token["_id"]})
     # print("deleted token: "+ token['token'])
 
 
