@@ -7,9 +7,9 @@ import time
 
 # Utils
 client = MongoClient(
-    "mongodb://team:123ert@ds018839.mlab.com:18839/new_hackaton", retryWrites=False
+    "mongodb://team:123ert@ds018839.mlab.com:18839/cost_database", retryWrites=False
 )
-db = client.new_hackaton
+db = client.cost_database
 users = db.users
 guides = db.guides
 bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
