@@ -12,7 +12,7 @@ client = MongoClient(
 db = client.cost_database
 users = db.users
 guides = db.guides
-bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
+bot_token = "808d7e351f4ea69e831df1180e69960b326a14aa"
 tokens = db.tokens
 
 # https://github.com/dialogs/chatbot-hackathon - basic things
