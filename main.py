@@ -53,14 +53,14 @@ def whose_token(token, id, peer):
 
     if current_time - int(token["time"]) >= 24 * 60 * 60 * 1000:
         delete_token(token)
-        return on_msg("Ваш токен", peer)
+        return on_msg("Ваш токен устарел", peer)
 
     if token["type"] == "Office-manager":
+        add_user_to_admins(id, token["company"])
         send_manager_buttons(id, peer)
-        return add_user_to_admins(id, token["company"])
     else:
+        add_user_to_users(id, token["company"])
         get_guides(id, peer)
-        return add_user_to_users(id, token["company"])
 
 
 def want_to_create(*params):
@@ -87,6 +87,7 @@ def want_to_create(*params):
         ],
     )
 
+
 def send_manager_buttons(id, peer):
     buttons = [
         interactive_media.InteractiveMediaGroup(
@@ -106,7 +107,8 @@ def send_manager_buttons(id, peer):
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "get_admin_token", "Получить ключ для приглашения Офис менеджера"
+                        "get_admin_token",
+                        "Получить ключ для приглашения Офис менеджера",
                     ),
                 ),
                 interactive_media.InteractiveMedia(
@@ -203,7 +205,7 @@ def get_company(id):
     return res
 
 
-def add_guide(id, company, content, title):
+def add_guide(company, content, title):
     value = generate_guide_value(company)
     guides.insert_one(
         {"company": company, "value": value, "content": content, "title": title}
@@ -234,24 +236,6 @@ def on_click(*params):
     id = params[0].uid
     value = params[0].value
     peer = bot.users.get_user_peer_by_id(id)
-    if value == "create_company":
-        bot.messaging.send_message(peer, "Введите имя компании")
-
-        def waiting_of_creating_company(*params):
-            users.insert_one(
-                {
-                    "type": "Office-manager",
-                    "company": params[0].message.textMessage.text,
-                    "id": id,
-                }
-            )
-            bot.messaging.send_message(
-                peer, "Компания успешно создана. Теперь вы админ"
-            )
-            auth(id, peer, *params)
-            bot.messaging.on_message(main, on_click)
-
-        bot.messaging.on_message(waiting_of_creating_company)
 
     all_guides = guide_list(id)
     guides_values = [x["value"] for x in all_guides]
@@ -263,6 +247,36 @@ def on_click(*params):
         time.sleep(1)
 
         bot.messaging.send_message(peer, guide["content"])
+
+    if value == "not_create_company":
+        bot.messaging.send_message(
+            peer,
+            "Чтобы пользоваться ботом нужно иметь ключ или создать компанию или быть зарегистрированным",
+        )
+        return
+    if value == "create_company":
+        bot.messaging.send_message(peer, "Введите имя компании")
+
+        def waiting_of_creating_company(*params):
+            company_name = params[0].message.textMessage.text
+            exits_companies_dict = list(users.find({"company": company_name}))
+            exits_companies_list = [x["company"] for x in exits_companies_dict]
+
+            if company_name in exits_companies_list:
+                bot.messaging.send_message(
+                    peer, "Компания с таким именем уже существует"
+                )
+            else:
+                users.insert_one(
+                    {"type": "Office-manager", "company": company_name, "id": id}
+                )
+                bot.messaging.send_message(
+                    peer, "Компания успешно создана. Теперь вы Офис менеджер"
+                )
+            auth(id, peer, *params)
+            bot.messaging.on_message(main, on_click)
+
+        bot.messaging.on_message(waiting_of_creating_company)
 
     if value == "add_guide":
         bot.messaging.send_message(peer, "Напишите название гайда")
@@ -276,7 +290,7 @@ def on_click(*params):
                 content = params[0].message.textMessage.text
                 company = get_company(id)
 
-                add_guide(id, company, content, title)
+                add_guide(company, content, title)
                 bot.messaging.send_message(peer, "Вы создали гайд")
 
                 auth(id, peer, *params)
@@ -301,7 +315,7 @@ def on_click(*params):
                 "time": current_time,
             }
         )
-        bot.messaging.send_message(peer, "Токен для пользователя: " + token)
+        bot.messaging.send_message(peer, "Ключ для пользователя: " + token)
 
     if value == "get_admin_token":
         current_time = str(int(time.time() * 1000.0))
@@ -314,16 +328,10 @@ def on_click(*params):
                 "time": current_time,
             }
         )
-        bot.messaging.send_message(peer, "Токен для офис менеджера: " + token)
+        bot.messaging.send_message(peer, "Ключ для офис менеджера: " + token)
 
     if value == "get_guides":
         get_guides(id, peer)
-
-    if value == "not_create_company":
-        bot.messaging.send_message(
-            peer,
-            "Чтобы пользоваться ботом нужно иметь ключ или создать компанию или быть зарегистрированным",
-        )
 
 
 if __name__ == "__main__":
