@@ -16,6 +16,8 @@ cupshelpers==1.0
 defer==1.0.6
 dialog-api==0.0.50
 dialog-bot-sdk==2.2.6
+dialog_bot_sdk.bot==*
+dialog_bot_sdk==*
 Django==2.2.3
 gevent==1.4.0
 google-api-python-client==1.7.11
