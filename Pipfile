@@ -10,6 +10,7 @@ dialog-bot-sdk = "*"
 pymongo = "*"
 grpc = "*"
 time = "*"
+setup-py = {editable = true,version = "*"}
 
 [requires]
 python_version = "3.7"
