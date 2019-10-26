@@ -237,17 +237,6 @@ def on_click(*params):
     value = params[0].value
     peer = bot.users.get_user_peer_by_id(id)
 
-    all_guides = guide_list(id)
-    guides_values = [x["value"] for x in all_guides]
-
-    if value in guides_values:
-        guide = guides.find_one({"value": value})
-        bot.messaging.send_message(peer, guide["title"])
-
-        time.sleep(1)
-
-        bot.messaging.send_message(peer, guide["content"])
-
     if value == "not_create_company":
         bot.messaging.send_message(
             peer,
@@ -277,6 +266,17 @@ def on_click(*params):
             bot.messaging.on_message(main, on_click)
 
         bot.messaging.on_message(waiting_of_creating_company)
+
+    all_guides = guide_list(id)
+    guides_values = [x["value"] for x in all_guides]
+
+    if value in guides_values:
+        guide = guides.find_one({"value": value})
+        bot.messaging.send_message(peer, guide["title"])
+
+        time.sleep(1)
+
+        bot.messaging.send_message(peer, guide["content"])
 
     if value == "add_guide":
         bot.messaging.send_message(peer, "Напишите название гайда")
