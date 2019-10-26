@@ -6,6 +6,10 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+dialog-bot-sdk = "*"
+pymongo = "*"
+grpc = "*"
+time = "*"
 
 [requires]
 python_version = "3.7"
