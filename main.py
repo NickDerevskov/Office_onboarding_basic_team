@@ -12,7 +12,7 @@ client = MongoClient(
 db = client.new_hackaton
 users = db.users
 guides = db.guides
-bot_token = "fc1595f3591f137461a1ad6441062e083fd366a1"
+bot_token = "4a3a998e50c55e13fb4ef9a52a224303602da6af"
 tokens = db.tokens
 
 # https://github.com/dialogs/chatbot-hackathon - basic things
@@ -50,40 +50,36 @@ def has_token(id, *params):
 
 def whose_token(token, id, peer):
     current_time = int(time.time() * 1000.0)
-    current_token = tokens.find_one({"token": token})
 
     if current_time - int(token["time"]) >= 24 * 60 * 60 * 1000:
         delete_token(token)
-        return on_msg("Токен устарел Т_Т, проси новый", peer)
+        return on_msg("Ваш токен", peer)
 
     if token["type"] == "Office-manager":
-        on_msg("Ты одмен", peer)
         send_manager_buttons(id, peer)
         return add_user_to_admins(id, token["company"])
     else:
-        on_msg("Ты юзер", peer)
-        # send_guides(id, peer)
-        # TODO add send guides
+        get_guides(id, peer)
         return add_user_to_users(id, token["company"])
 
 
 def want_to_create(*params):
     bot.messaging.send_message(
         params[0].peer,
-        "Создай компанию, плз",
+        "Хотите создать новую компанию в списке?",
         [
             interactive_media.InteractiveMediaGroup(
                 [
                     interactive_media.InteractiveMedia(
                         1,
                         interactive_media.InteractiveMediaButton(
-                            "create_company", "Давай"
+                            "create_company", "Да"
                         ),
                     ),
                     interactive_media.InteractiveMedia(
                         1,
                         interactive_media.InteractiveMediaButton(
-                            "not_create_company", "Не давай"
+                            "not_create_company", "Нет"
                         ),
                     ),
                 ]
@@ -91,11 +87,7 @@ def want_to_create(*params):
         ],
     )
 
-
-# TODO
 def send_manager_buttons(id, peer):
-    bot.messaging.send_message(peer, "Sending manager buttons")
-
     buttons = [
         interactive_media.InteractiveMediaGroup(
             [
@@ -108,13 +100,13 @@ def send_manager_buttons(id, peer):
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "get_user_token", "Получить ключ для юзера"
+                        "get_user_token", "Получить ключ для приглашения Пользователя"
                     ),
                 ),
                 interactive_media.InteractiveMedia(
                     1,
                     interactive_media.InteractiveMediaButton(
-                        "get_admin_token", "Получить ключ для админа"
+                        "get_admin_token", "Получить ключ для приглашения Офис менеджера"
                     ),
                 ),
                 interactive_media.InteractiveMedia(
@@ -133,25 +125,28 @@ def send_manager_buttons(id, peer):
         )
     ]
 
-    bot.messaging.send_message(peer, "Choose option", buttons)
+    bot.messaging.send_message(peer, "Выберите действие", buttons)
 
 
 def auth(id, peer, *params):
     if is_exist(id):
         send_manager_buttons(id, peer) if is_manager(id) else get_guides(id, peer)
     else:
-        # TODO WORK WITH TOKEN
         has_token(id, *params)
 
 
 def start_text(peer):
     bot.messaging.send_message(
-        peer, "This is start message, you can use /info to get details!"
+        peer,
+        "Здравствуйте это бот для онбординга. Чтобы узнать дополнительную информацию напишите /info (вставтьте ключ или напишите сообщение)",
     )
 
 
 def info_text(peer):
-    bot.messaging.send_message(peer, "This is info message")
+    bot.messaging.send_message(
+        peer,
+        "Вход в бота может осуществляться через ключ, либо он выполнится автоматически на написание любого сообщения если вы уже зарегистрированны",
+    )
 
 
 # Main fun
@@ -162,18 +157,11 @@ def main(*params):
         info_text(peer)
         return
 
-    bot.messaging.send_message(peer, "Hey")
-
     if params[0].message.textMessage.text == "/start":
         start_text(peer)
         return
 
-    # time.sleep(2)  # for better usage
     auth(id, peer, *params)
-    # user = bot.users.get_user_by_id(id)
-    # on_msg("Hello user " + user.data.name, params[0].peer)
-    #
-    # return
 
 
 def render_guides_buttons(peer, guides):
@@ -186,7 +174,7 @@ def render_guides_buttons(peer, guides):
         interactive_media.InteractiveMediaGroup([make_button(x) for x in guides])
     ]
 
-    bot.messaging.send_message(peer, "Choose guide", buttons)
+    bot.messaging.send_message(peer, "Выберите гайд", buttons)
 
 
 def guide_list(id):
@@ -250,7 +238,7 @@ def on_click(*params):
         bot.messaging.send_message(peer, "Введите имя компании")
 
         def waiting_of_creating_company(*params):
-            reviews.insert_one(
+            users.insert_one(
                 {
                     "type": "Office-manager",
                     "company": params[0].message.textMessage.text,
@@ -277,23 +265,21 @@ def on_click(*params):
         bot.messaging.send_message(peer, guide["content"])
 
     if value == "add_guide":
-        bot.messaging.send_message(peer, "Write Title for guide")
+        bot.messaging.send_message(peer, "Напишите название гайда")
 
-        # TODO DO BETTER PLEASE IT IS SIDE EFFECTS!
         def get_content_and_go_main(*params):
             title = params[0].message.textMessage.text
 
-            bot.messaging.send_message(peer, "Write Content for guide content")
+            bot.messaging.send_message(peer, "Напишите содержание гайда")
 
             def fn_and_go_main(*params):
                 content = params[0].message.textMessage.text
                 company = get_company(id)
 
-                # save guide
                 add_guide(id, company, content, title)
-                bot.messaging.send_message(peer, "You created guide")
+                bot.messaging.send_message(peer, "Вы создали гайд")
 
-                main(*params)
+                auth(id, peer, *params)
 
                 bot.messaging.on_message(main, on_click)
 
@@ -333,16 +319,19 @@ def on_click(*params):
     if value == "get_guides":
         get_guides(id, peer)
 
-    # print("deleted token: "+ token['token'])
+    if value == "not_create_company":
+        bot.messaging.send_message(
+            peer,
+            "Чтобы пользоваться ботом нужно иметь ключ или создать компанию или быть зарегистрированным",
+        )
 
 
 if __name__ == "__main__":
     bot = DialogBot.get_secure_bot(
         "hackathon-mob.transmit.im",  # bot endpoint (specify different endpoint if you want to connect to your on-premise environment)
         grpc.ssl_channel_credentials(),  # SSL credentials (empty by default!)
-        bot_token,  # bot token Nikita , Nikita 2 - "d3bdd8ab024c03560ecf3350bcc3c250a0bbe9cd",
+        bot_token,
         verbose=False,  # optional parameter, when it's True bot prints info about the called methods, False by default
     )
 
-# work like return , block code after, if want to use code after, use async vers
 bot.messaging.on_message(main, on_click)
